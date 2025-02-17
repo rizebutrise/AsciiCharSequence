@@ -1,9 +1,11 @@
+import javax.swing.*;
 import java.nio.charset.StandardCharsets;
 import java.lang.CharSequence;
 
 public static class asciiCharSequence implements CharSequence {
     private final byte[] data;
     private static final Charset WINDOWS_1251 = Charset.forName("Windows-1251");
+
     public asciiCharSequence(byte[] data) {
         this.data = data.clone();
     }
@@ -15,7 +17,15 @@ public static class asciiCharSequence implements CharSequence {
 
     @Override
     public char charAt(int index) {
-       return (char)(data[index] & 0xff);
+        return (char) (data[index] & 0xff);
+    }
+
+    private byte[] getBytes(CharSequence sequence) {
+        if (sequence instanceof asciiCharSequence) {
+            return ((asciiCharSequence) sequence).data;
+        } else {
+            return sequence.toString().getBytes(WINDOWS_1251);
+        }
     }
 
     @Override
@@ -31,11 +41,24 @@ public static class asciiCharSequence implements CharSequence {
     }
 
     public CharSequence delete(int from, int to) {
-        int newLength = data.length - (to - from);
-        byte[] result = new byte[newLength];
-        System.arraycopy(data, 0, result, 0, from);
-        System.arraycopy(data, to, result, from, data.length - to);
-        return new asciiCharSequence(result);
+        CharSequence left = subSequence(0, from);
+        CharSequence right = subSequence(to, data.length);
+        return concat(left, right);
+    }
+
+    public CharSequence concat(CharSequence first, CharSequence second) {
+        byte[] firstBytes = getBytes(first);
+        byte[] secondBytes = getBytes(second);
+        if (first instanceof asciiCharSequence) {
+            firstBytes = ((asciiCharSequence) first).data;
+        } else {
+            secondBytes = second.toString().getBytes(WINDOWS_1251);
+        }
+
+        byte[] combine = new byte[firstBytes.length + secondBytes.length];
+        System.arraycopy(firstBytes, 0, combine, 0, firstBytes.length);
+        System.arraycopy(secondBytes, 0, combine, firstBytes.length, secondBytes.length);
+        return new asciiCharSequence(combine);
     }
 
     @Override
